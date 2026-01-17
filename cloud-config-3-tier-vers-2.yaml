@@ -1,0 +1,37 @@
+#cloud-config
+users:
+  - name: tiago
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII7TsNmfwXBJi0L8Zk+aWmA6dB1QYsyszoeJ8w9wIXp+ tiago_3qbppvc@Computer_Tiago
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - git
+  - maven
+  - openjdk-11-jdk
+  - mariadb-server
+
+runcmd:
+  - systemctl enable --now mariadb
+  - mariadb -e "
+      CREATE DATABASE IF NOT EXISTS jokedb;
+      DROP USER IF EXISTS 'jokedbuser'@'localhost';
+      DROP USER IF EXISTS 'jokedbuser'@'127.0.0.1';
+      CREATE USER 'jokedbuser'@'localhost' IDENTIFIED BY '123456';
+      CREATE USER 'jokedbuser'@'127.0.0.1' IDENTIFIED BY '123456';
+      GRANT ALL PRIVILEGES ON jokedb.* TO 'jokedbuser'@'localhost';
+      GRANT ALL PRIVILEGES ON jokedb.* TO 'jokedbuser'@'127.0.0.1';
+      FLUSH PRIVILEGES;"
+  - git clone https://gitlab.com/bbwrl/m346-ref-card-03.git /root/m346-ref-card-03
+  - cd /root/m346-ref-card-03
+  - awk '{if($0 ~ /^#spring.sql.init.mode=always/){print "spring.sql.init.mode=always"} else if($0 ~ /^spring.sql.init.mode=never/){print "#spring.sql.init.mode=never"} else {print $0}}' src/main/resources/application.properties > tmp && mv tmp src/main/resources/application.properties
+  - rm -f /etc/alternatives/java
+  - ln -s /usr/lib/jvm/java-11-openjdk*/bin/java /etc/alternatives/java
+  - mvn package -DskipTests
+  - mkdir -p /opt/jokesdb
+  - cp /root/m346-ref-card-03/target/*.jar /opt/jokesdb/jokesdb.jar
+  - java -jar /opt/jokesdb/jokesdb.jar &

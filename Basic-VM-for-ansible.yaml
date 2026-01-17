@@ -1,0 +1,28 @@
+#cloud-config
+fqdn: tiagoaraujo2
+
+users:
+  - name: tiago
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII7TsNmfwXBJi0L8Zk+aWmA6dB1QYsyszoeJ8w9wIXp+ tiago_3qbppvc@Computer_Tiago
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMAEYLNYB2FzNQCaOQ1yrMIxWMmTWsXR2G5jp7ddF/Rf tiago@tiagoaraujo1
+
+
+package_update: true
+
+
+#cloud-config
+fqdn: tiagoaraujo3
+
+users:
+  - name: tiago
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII7TsNmfwXBJi0L8Zk+aWmA6dB1QYsyszoeJ8w9wIXp+ tiago_3qbppvc@Computer_Tiago
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMAEYLNYB2FzNQCaOQ1yrMIxWMmTWsXR2G5jp7ddF/Rf tiago@tiagoaraujo1
+
+
+package_update: true

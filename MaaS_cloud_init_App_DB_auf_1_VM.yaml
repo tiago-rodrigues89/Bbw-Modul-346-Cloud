@@ -1,0 +1,27 @@
+#cloud-config
+users:
+  - name: tiago
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII7TsNmfwXBJi0L8Zk+aWmA6dB1QYsyszoeJ8w9wIXp+ tiago_3qbppvc@Computer_Tiago
+
+package_update: true
+package_upgrade: true
+
+runcmd:
+  - apt-get update
+  - apt-get install -y git mariadb-server maven
+  - sudo -u tiago -H bash -lc 'cd ~ && git clone https://gitlab.com/bbwrl/m346-ref-card-03.git'
+  - sudo -u tiago -H bash -lc 'cd ~/m346-ref-card-03 && mvn -q -DskipTests package'
+  - systemctl enable --now mariadb
+  - sudo mariadb -e "
+      CREATE DATABASE IF NOT EXISTS jokedb;
+      DROP USER IF EXISTS 'jokedbuser'@'localhost';
+      DROP USER IF EXISTS 'jokedbuser'@'127.0.0.1';
+      CREATE USER 'jokedbuser'@'localhost' IDENTIFIED BY '123456';
+      CREATE USER 'jokedbuser'@'127.0.0.1' IDENTIFIED BY '123456';
+      GRANT ALL PRIVILEGES ON jokedb.* TO 'jokedbuser'@'localhost';
+      GRANT ALL PRIVILEGES ON jokedb.* TO 'jokedbuser'@'127.0.0.1';
+    "
+  - sudo -u tiago -H bash -lc 'cd ~/m346-ref-card-03/target && nohup java -jar architecture-refcard-03-0.0.1-SNAPSHOT.jar > ~/app.log 2>&1 &'

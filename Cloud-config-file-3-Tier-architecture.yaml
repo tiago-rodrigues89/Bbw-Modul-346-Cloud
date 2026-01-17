@@ -1,0 +1,29 @@
+#cloud-config
+users:
+  - name: tiago
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII7TsNmfwXBJi0L8Zk+aWmA6dB1QYsyszoeJ8w9wIXp+ tiago_3qbppvc@Computer_Tiago
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - git
+  - maven
+  - openjdk-11-jdk
+  - mariadb-server
+
+runcmd:
+  - systemctl enable --now mariadb
+  - mariadb -e "CREATE DATABASE jokesdb;"
+  - mariadb -e "GRANT ALL PRIVILEGES ON jokesdb.* TO 'jokedbuser'@'localhost' IDENTIFIED BY '123456'; FLUSH PRIVILEGES;"
+  - git clone https://gitlab.com/bbwrl/m346-ref-card-03.git /root/m346-ref-card-03
+  - cd /root/m346-ref-card-03
+  - rm -f /etc/alternatives/java 
+  - ln -s /usr/lib/jvm/java-11-openjdk*/bin/java /etc/alternatives/java 
+  - mvn package
+  - mkdir -p /opt/jokesdb
+  - cp /root/m346-ref-card-03/target/*.jar /opt/jokesdb/jokesdb.jar
+  - java -jar /opt/jokesdb/jokesdb.jar &
