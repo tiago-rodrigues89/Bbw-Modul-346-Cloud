@@ -1,0 +1,97 @@
+---
+- name: Deploy Joke Application
+  hosts: application_hosts
+  become: yes
+  gather_facts: yes
+
+  vars:
+    git_repo: "https://gitlab.com/bbwrl/m346-ref-card-03.git"
+    app_src: "/root/m346-ref-card-03"
+    app_dir: "/opt/jokesdb"
+    db_ip: "192.168.76.110"
+    db_name: "jokedb"
+    db_user: "jokedbuser"
+    db_pass: "123456"
+    java11_home: "/usr/lib/jvm/java-11-openjdk-amd64"
+
+  tasks:
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - git
+          - maven
+          - openjdk-11-jdk
+        state: present
+
+    - name: Ensure source directory is absent for clean clone
+      file:
+        path: "{{ app_src }}"
+        state: absent
+
+    - name: Clone application repo
+      git:
+        repo: "{{ git_repo }}"
+        dest: "{{ app_src }}"
+        force: yes
+
+    - name: Enable spring.sql.init.mode=always
+      replace:
+        path: "{{ app_src }}/src/main/resources/application.properties"
+        regexp: '^spring.sql.init.mode=never'
+        replace: 'spring.sql.init.mode=always'
+
+    - name: Update DB connection URL
+      lineinfile:
+        path: "{{ app_src }}/src/main/resources/application.properties"
+        regexp: '^spring.datasource.url='
+        line: "spring.datasource.url=jdbc:mariadb://{{ db_ip }}:3306/{{ db_name }}"
+
+    - name: Update DB username
+      lineinfile:
+        path: "{{ app_src }}/src/main/resources/application.properties"
+        regexp: '^spring.datasource.username='
+        line: "spring.datasource.username={{ db_user }}"
+
+    - name: Update DB password
+      lineinfile:
+        path: "{{ app_src }}/src/main/resources/application.properties"
+        regexp: '^spring.datasource.password='
+        line: "spring.datasource.password={{ db_pass }}"
+
+    - name: Build application with Maven (Java 11 enforced)
+      command: mvn package -DskipTests
+      args:
+        chdir: "{{ app_src }}"
+      environment:
+        JAVA_HOME: "{{ java11_home }}"
+        PATH: "{{ java11_home }}/bin:{{ ansible_env.PATH }}"
+
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Find built JAR (SNAPSHOT etc)
+      find:
+        paths: "{{ app_src }}/target"
+        patterns: "*.jar"
+      register: jar_files
+
+    - name: Debug found JAR files (optional)
+      debug:
+        msg: "Found JAR: {{ jar_files.files[0].path }}"
+
+    - name: Copy built JAR to application directory
+      copy:
+        src: "{{ jar_files.files[0].path }}"
+        dest: "{{ app_dir }}/jokesdb.jar"
+        remote_src: yes
+
+    - name: Start Joke Application with Java 11
+      shell: "nohup {{ java11_home }}/bin/java -jar {{ app_dir }}/jokesdb.jar > {{ app_dir }}/app.log 2>&1 &"

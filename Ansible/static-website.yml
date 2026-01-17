@@ -1,0 +1,30 @@
+---
+- name: Static Website on Nginx
+  hosts: web
+  become: yes
+  gather_facts: yes
+
+  tasks:
+  - name: Install or Update Nginx
+    ansible.builtin.apt:
+     name: nginx
+     state: latest
+     update_cache: true
+
+  - name: Write the html
+    ansible.builtin.copy:
+      src: files/index.html
+      dest: /var/www/html/index.html
+      mode: '0644'
+
+  - name: Download profile picture from web
+    ansible.builtin.get_url:
+      url: https://www.sunrise-avengers.ch/Profile_Images/PROFILEtiago.JPG
+      dest: /var/www/html/PROFILEtiago.jpeg
+      mode: '0644'
+
+  - name: Ensure Nginx is running
+    ansible.builtin.service:
+      name: nginx
+      state: started
+      enabled: yes
