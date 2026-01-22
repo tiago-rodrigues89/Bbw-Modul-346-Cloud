@@ -20,17 +20,14 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 }
 
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.0.0/24"
   map_public_ip_on_launch = true
-  # FIX 1: Wir zwingen das Subnetz in die erste Zone (meist 'us-west-2a'), 
-  # da in Zone D keine t2.micros verfügbar sind.
-  availability_zone       = data.aws_availability_zones.available.names[0]
+}
+
+data "aws_availability_zones" "available" {
+  state = "available"
 }
 
 resource "aws_subnet" "private" {
@@ -124,9 +121,8 @@ resource "aws_db_instance" "mariadb" {
   allocated_storage      = 20
   storage_type           = "gp2"
   engine                 = "mariadb"
-  engine_version         = "10.6"
-  # FIX 2: Upgrade von db.t2.micro auf db.t3.micro (moderner und kompatibel)
-  instance_class         = "db.t3.micro" 
+  engine_version         = "10.6.14"
+  instance_class         = "db.t2.micro"
   db_name                = "mariadb"
   username               = "admin"
   password               = "mypassword"
